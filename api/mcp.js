@@ -7,7 +7,7 @@ function reply(res, status, message) {
   res.end(JSON.stringify({ error: message }));
 }
 
-export function createHandler(options) {
+export function createHandler() {
   return async function handler(req, res) {
     res.setHeader('Cache-Control', 'no-store');
     const origin = req.headers.origin;
@@ -33,7 +33,7 @@ export function createHandler(options) {
       res.setHeader('Allow', 'POST, OPTIONS');
       return reply(res, 405, 'Use MCP Streamable HTTP POST requests; no persistent SSE stream is provided.');
     }
-    const server = createMcpServer(options);
+    const server = createMcpServer();
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, enableJsonResponse: true
     });

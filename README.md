@@ -1,7 +1,7 @@
 # De Lijn MCP
 
 A small Node.js MCP server backed by the [De Lijn Open Data Core v1 API](https://portal.delijn.be/api-details#api=KernOpenDataServicesV1).
-One direct runtime dependency: the official MCP SDK. HTTP, fetch, environment loading and tests use Node's built-in modules.
+One direct runtime dependency: the official MCP SDK. HTTP, fetch and environment loading use Node's built-in modules.
 
 ## Local Setup
 
@@ -38,10 +38,11 @@ For a fresh checkout, create `.env` from `.env.example`.
 Supply identifiers as strings, for example `{"entityNumber":"3","stopNumber":"306938"}`.
 Municipality numbers are De Lijn identifiers, not postal codes. Find them using `list_municipalities`.
 Municipality stop results include the entity and stop numbers needed by the other tools.
+They also include `coordinates.latitude` and `coordinates.longitude`, so callers can display the stops on a map.
 
 All applicable requests explicitly use the current Belgian date/time (`Europe/Brussels`), including daylight saving time.
 No tool accepts a historical or future date. `geldigOp` is sent as a local date/time; `datum` as a local calendar date.
-Responses preserve De Lijn's Dutch field names and include date, timezone and request timestamp.
+Responses return the useful De Lijn payload directly without a metadata envelope.
 If only some alert endpoints fail, successful alerts are returned and failed categories are `null` with explicit warnings.
 There is no data cache. The subscription key is sent in `Ocp-Apim-Subscription-Key`, never in the URL.
 
@@ -68,12 +69,3 @@ Vercel deployment protection, when enabled, must also allow your MCP client acce
 The server is accessible without authentication unless `MCP_AUTH_TOKEN` is set. This token is separate from the De Lijn API key.
 Requests without an Origin header (normal desktop/server clients) are accepted. For browser clients, add exact origins to
 `MCP_ALLOWED_ORIGINS`, separated by commas, for example `https://client.example.com`. Other browser origins are rejected.
-
-## Verification
-
-```sh
-npm test
-```
-
-Tests use mocked De Lijn data and a real MCP SDK HTTP client. A live data request requires your key and an active Core subscription.
-There is no deployment or key validation performed by the test suite.
