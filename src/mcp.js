@@ -1,9 +1,29 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {
+  CallToolRequestSchema,
+  GetPromptRequestSchema,
+  ListResourcesRequestSchema,
+  ListPromptsRequestSchema,
+  ListToolsRequestSchema,
+  ReadResourceRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
+import { getPrompt, prompts } from './prompts.js';
+import { listResources, readResource } from './resources.js';
 import { callTool, tools } from './tools.js';
 
 export function createMcpServer() {
-  const server = new Server({ name: 'de-lijn-mcp', version: '1.1.0' }, { capabilities: { tools: {} } });
+  const server = new Server(
+    { name: 'de-lijn-mcp', version: '1.2.0' },
+    { capabilities: { prompts: {}, resources: {}, tools: {} } }
+  );
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({ prompts }));
+  server.setRequestHandler(GetPromptRequestSchema, async request => (
+    getPrompt(request.params.name, request.params.arguments)
+  ));
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: await listResources() }));
+  server.setRequestHandler(ReadResourceRequestSchema, async request => ({
+    contents: [await readResource(request.params.uri)]
+  }));
   server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools }));
   server.setRequestHandler(CallToolRequestSchema, async request => {
     try {

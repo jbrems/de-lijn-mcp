@@ -53,6 +53,24 @@ Each passage has a `source` of `realtime` or `timetable`. The realtime request i
 may only have timetable information. If realtime fails, timetable results are returned with `realtimeAvailable: false` and a warning.
 The standalone realtime tool returns the API's current window unchanged; that endpoint has no date parameter and can span midnight.
 
+## Resources
+
+The server exposes both De Lijn logo files as binary MCP resources:
+
+| Resource URI | MIME type |
+| --- | --- |
+| `delijn://logos/logo.png` | `image/png` |
+| `delijn://logos/logo.jpg` | `image/jpeg` |
+
+Use `resources/list` to discover them and `resources/read` to retrieve their base64-encoded image data.
+
+## Prompts
+
+| Prompt | Argument | Result |
+| --- | --- | --- |
+| `fetch_stops_in_municipality` | `municipality` (required) | Asks for all bus stops in the named municipality and the lines serving them. |
+| `fetch_next_3_passages_at_stops` | `stopNames` (required, comma-separated) | Asks for the next three passages at the named stops. |
+
 ## Vercel
 
 1. Import this directory's repository into Vercel, or run `npx vercel` here. Select the **Other** framework preset; no build command or output directory is needed.
