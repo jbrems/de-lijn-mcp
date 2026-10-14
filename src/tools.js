@@ -25,20 +25,30 @@ export const getMunicipalityStopsTool = {
 
 export const getStopLinesTool = {
   name: 'get_stop_lines',
-  description: 'Get all lines and directions serving a stop today.',
+  description: 'Get all lines and directions serving one or more stops today.',
   inputSchema: {
     type: 'object',
     properties: {
-      entityNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn entiteitnummer. Obtain this from a municipality stop result.'
-      },
-      stopNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn haltenummer. Keep any leading zeroes.'
+      stopIds: {
+        type: 'array', minItems: 1, maxItems: 50,
+        description: 'De Lijn stop identifiers. Obtain these from municipality stop results.',
+        items: {
+          type: 'object',
+          properties: {
+            entityNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn entiteitnummer.'
+            },
+            stopNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn haltenummer. Keep any leading zeroes.'
+            }
+          },
+          required: ['entityNumber', 'stopNumber'], additionalProperties: false
+        }
       }
     },
-    required: ['entityNumber', 'stopNumber'], additionalProperties: false
+    required: ['stopIds'], additionalProperties: false
   },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
 };
@@ -147,7 +157,10 @@ export async function getMunicipalityStops(args) {
 }
 
 export function getStopLines(args) {
-  return deLijnService.getStopLines(args.entityNumber, args.stopNumber);
+  return Promise.all(args.stopIds.map(async stopId => ({
+    stopId,
+    lines: await deLijnService.getStopLines(stopId.entityNumber, stopId.stopNumber)
+  })));
 }
 
 export function getStopNextPassages(args) {
