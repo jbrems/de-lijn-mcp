@@ -30,29 +30,33 @@ For a fresh checkout, create `.env` from `.env.example`.
 | `list_municipalities` | none | `/gemeenten` |
 | `get_municipality_stops` | `municipalityNumber` | `/gemeenten/{gemeenteNummer}/haltes` |
 | `get_stop_lines` | `stopIds` (array of `entityNumber`, `stopNumber` pairs) | `/haltes/{entiteitnummer}/{haltenummer}/lijnrichtingen` |
-| `get_stop_next_passages` | `entityNumber`, `stopNumber` | Line directions + daily timetable + realtime |
-| `get_stop_alerts` | `entityNumber`, `stopNumber` | Stop `/omleidingen`, `/berichten`, `/storingen` |
-| `get_stop_passages` | `entityNumber`, `stopNumber` | Stop `/dienstregelingen` |
-| `get_stop_realtime` | `entityNumber`, `stopNumber` | Stop `/real-time` |
+| `get_stop_next_passages` | `stopIds` | Line directions + daily timetable + realtime |
+| `get_stop_alerts` | `stopIds` | Stop `/omleidingen`, `/berichten`, `/storingen` |
+| `get_stop_passages` | `stopIds` | Stop `/dienstregelingen` |
+| `get_stop_realtime` | `stopIds` | Stop `/real-time` |
 
 Supply identifiers as strings, for example `{"entityNumber":"3","stopNumber":"306938"}`.
 Municipality numbers are De Lijn identifiers, not postal codes. Find them using `list_municipalities`.
 Municipality stop results include the entity and stop numbers needed by the other tools.
 They also include `coordinates.latitude` and `coordinates.longitude`, so callers can display the stops on a map.
 
-`get_stop_lines` accepts up to 50 stops in one call, for example:
+Every stop tool accepts up to 50 stops in one call, for example:
 
 ```json
 {"stopIds":[{"entityNumber":"3","stopNumber":"306938"},{"entityNumber":"3","stopNumber":"306939"}]}
 ```
 
-Its response is an array that pairs each requested `stopId` with its `lines` response.
+Each response is an array that pairs the requested `stopId` with its tool-specific result (`lines`, `nextPassages`, `alerts`, `passages` or `realtime`).
 
 All applicable requests explicitly use the current Belgian date/time (`Europe/Brussels`), including daylight saving time.
 No tool accepts a historical or future date. `geldigOp` is sent as a local date/time; `datum` as a local calendar date.
 Responses return the useful De Lijn payload directly without a metadata envelope.
 If only some alert endpoints fail, successful alerts are returned and failed categories are `null` with explicit warnings.
-There is no data cache. The subscription key is sent in `Ocp-Apim-Subscription-Key`, never in the URL.
+OpenData responses are cached in server memory and simultaneous identical requests share the same upstream request.
+Municipalities, stops and line directions are cached for 24 hours; timetables, alerts and realtime passages for 1 minute.
+The cache holds at most 1,000 responses per server instance, so separate Vercel
+instances do not share entries. Failed requests are never cached. The subscription key is sent in
+`Ocp-Apim-Subscription-Key`, never in the URL.
 
 `get_stop_passages` returns the complete daily timetable, including earlier and cancelled passages and notes.
 `get_stop_next_passages` returns one entry per served line **and direction**. Realtime updates override matching timetable passages;

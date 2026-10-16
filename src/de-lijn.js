@@ -1,5 +1,15 @@
 const API_BASE = 'https://api.delijn.be/DLKernOpenData/api/v1/';
 const TIME_ZONE = 'Europe/Brussels';
+const MAX_CACHE_ENTRIES = 1000;
+const CACHE_TTL = {
+  municipalities: 24 * 60 * 60 * 1000,
+  stops: 24 * 60 * 60 * 1000,
+  lines: 24 * 60 * 60 * 1000,
+  timetable: 60 * 1000,
+  alerts: 60 * 1000,
+  realtime: 60 * 1000
+};
+const responseCache = new Map();
 
 const formatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -26,17 +36,42 @@ function passageTime(value) {
   return instant;
 }
 
-async function request(path, query = {}) {
+async function request(path, query = {}, cacheTtlMs = 0) {
   const apiKey = process.env.DE_LIJN_API_KEY;
   if (!apiKey?.trim()) {
     throw new Error('Set DE_LIJN_API_KEY in .env locally or in Vercel Environment Variables.');
   }
   const url = new URL(path, API_BASE);
   for (const [name, value] of Object.entries(query)) url.searchParams.set(name, String(value));
+
+  const cacheKey = getCacheKey(url);
+  const cached = responseCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    // Refresh insertion order so the size limit evicts the least recently used entry.
+    responseCache.delete(cacheKey);
+    responseCache.set(cacheKey, cached);
+    return cached.promise;
+  }
+  if (cached) responseCache.delete(cacheKey);
+
+  const entry = { expiresAt: Infinity };
+  entry.promise = fetchResponse(url, apiKey.trim());
+  addCacheEntry(cacheKey, entry);
+  try {
+    const data = await entry.promise;
+    entry.expiresAt = Date.now() + cacheTtlMs;
+    return data;
+  } catch (error) {
+    if (responseCache.get(cacheKey) === entry) responseCache.delete(cacheKey);
+    throw error;
+  }
+}
+
+async function fetchResponse(url, apiKey) {
   let response;
   try {
     response = await fetch(url, {
-      headers: { Accept: 'application/json', 'Ocp-Apim-Subscription-Key': apiKey.trim() },
+      headers: { Accept: 'application/json', 'Ocp-Apim-Subscription-Key': apiKey },
       signal: AbortSignal.timeout(15000), redirect: 'error', cache: 'no-store'
     });
   } catch {
@@ -55,38 +90,68 @@ async function request(path, query = {}) {
   catch { throw new Error('De Lijn returned an invalid JSON response.'); }
 }
 
+function getCacheKey(url) {
+  const cacheUrl = new URL(url);
+  const validAt = cacheUrl.searchParams.get('geldigOp');
+  if (validAt) cacheUrl.searchParams.set('geldigOp', validAt.slice(0, 10));
+  return cacheUrl.href;
+}
+
+function addCacheEntry(key, entry) {
+  const now = Date.now();
+  for (const [cachedKey, cached] of responseCache) {
+    if (cached.expiresAt <= now) responseCache.delete(cachedKey);
+  }
+  while (responseCache.size >= MAX_CACHE_ENTRIES) {
+    responseCache.delete(responseCache.keys().next().value);
+  }
+  responseCache.set(key, entry);
+}
+
 export function listMunicipalities() {
-  return request('gemeenten');
+  return request('gemeenten', {}, CACHE_TTL.municipalities);
 }
 
 export function getMunicipalityStops(municipalityNumber) {
-  return request(`gemeenten/${municipalityNumber}/haltes`, { geldigOp: brusselsDateTime() });
+  return request(`gemeenten/${municipalityNumber}/haltes`, {
+    geldigOp: brusselsDateTime()
+  }, CACHE_TTL.stops);
 }
 
 export function getStopLines(entityNumber, stopNumber) {
-  return request(`haltes/${entityNumber}/${stopNumber}/lijnrichtingen`, { geldigOp: brusselsDateTime() });
+  return request(`haltes/${entityNumber}/${stopNumber}/lijnrichtingen`, {
+    geldigOp: brusselsDateTime()
+  }, CACHE_TTL.lines);
 }
 
 export function getStopPassages(entityNumber, stopNumber) {
   return request(`haltes/${entityNumber}/${stopNumber}/dienstregelingen`, {
     datum: brusselsDateTime().slice(0, 10), inclusiefLaatsteDoorkomst: true
-  });
+  }, CACHE_TTL.timetable);
 }
 
 export function getStopRealtime(entityNumber, stopNumber) {
-  return request(`haltes/${entityNumber}/${stopNumber}/real-time`, { maxAantalDoorkomsten: 100 });
+  return request(`haltes/${entityNumber}/${stopNumber}/real-time`, {
+    maxAantalDoorkomsten: 100
+  }, CACHE_TTL.realtime);
 }
 
 function getStopDetours(entityNumber, stopNumber) {
-  return request(`haltes/${entityNumber}/${stopNumber}/omleidingen`, { datum: brusselsDateTime().slice(0, 10) });
+  return request(`haltes/${entityNumber}/${stopNumber}/omleidingen`, {
+    datum: brusselsDateTime().slice(0, 10)
+  }, CACHE_TTL.alerts);
 }
 
 function getStopMessages(entityNumber, stopNumber) {
-  return request(`haltes/${entityNumber}/${stopNumber}/berichten`, { datum: brusselsDateTime().slice(0, 10) });
+  return request(`haltes/${entityNumber}/${stopNumber}/berichten`, {
+    datum: brusselsDateTime().slice(0, 10)
+  }, CACHE_TTL.alerts);
 }
 
 function getStopDisruptions(entityNumber, stopNumber) {
-  return request(`haltes/${entityNumber}/${stopNumber}/storingen`, { datum: brusselsDateTime().slice(0, 10) });
+  return request(`haltes/${entityNumber}/${stopNumber}/storingen`, {
+    datum: brusselsDateTime().slice(0, 10)
+  }, CACHE_TTL.alerts);
 }
 
 export async function getStopAlerts(entityNumber, stopNumber) {

@@ -55,80 +55,120 @@ export const getStopLinesTool = {
 
 export const getStopNextPassagesTool = {
   name: 'get_stop_next_passages',
-  description: 'Get the next non-cancelled passage today for every served line and direction. Combine the full timetable with up to 100 realtime passages; timetable fallback is labelled. A null passage means no remaining passage today.',
+  description: 'Get the next non-cancelled passage today for every served line and direction at one or more stops. Combine the full timetable with up to 100 realtime passages per stop; timetable fallback is labelled. A null passage means no remaining passage today.',
   inputSchema: {
     type: 'object',
     properties: {
-      entityNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn entiteitnummer. Obtain this from a municipality stop result.'
-      },
-      stopNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn haltenummer. Keep any leading zeroes.'
+      stopIds: {
+        type: 'array', minItems: 1, maxItems: 50,
+        description: 'De Lijn stop identifiers. Obtain these from municipality stop results.',
+        items: {
+          type: 'object',
+          properties: {
+            entityNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn entiteitnummer.'
+            },
+            stopNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn haltenummer. Keep any leading zeroes.'
+            }
+          },
+          required: ['entityNumber', 'stopNumber'], additionalProperties: false
+        }
       }
     },
-    required: ['entityNumber', 'stopNumber'], additionalProperties: false
+    required: ['stopIds'], additionalProperties: false
   },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
 };
 
 export const getStopAlertsTool = {
   name: 'get_stop_alerts',
-  description: 'Get detours, disruptions and other messages for a stop today.',
+  description: 'Get detours, disruptions and other messages for one or more stops today.',
   inputSchema: {
     type: 'object',
     properties: {
-      entityNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn entiteitnummer. Obtain this from a municipality stop result.'
-      },
-      stopNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn haltenummer. Keep any leading zeroes.'
+      stopIds: {
+        type: 'array', minItems: 1, maxItems: 50,
+        description: 'De Lijn stop identifiers. Obtain these from municipality stop results.',
+        items: {
+          type: 'object',
+          properties: {
+            entityNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn entiteitnummer.'
+            },
+            stopNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn haltenummer. Keep any leading zeroes.'
+            }
+          },
+          required: ['entityNumber', 'stopNumber'], additionalProperties: false
+        }
       }
     },
-    required: ['entityNumber', 'stopNumber'], additionalProperties: false
+    required: ['stopIds'], additionalProperties: false
   },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
 };
 
 export const getStopPassagesTool = {
   name: 'get_stop_passages',
-  description: 'Get the full timetable of passages at a stop today, including past and cancelled passages and all notes. This is the daily timetable, not just the limited realtime window.',
+  description: 'Get the full timetable of passages at one or more stops today, including past and cancelled passages and all notes. This is the daily timetable, not just the limited realtime window.',
   inputSchema: {
     type: 'object',
     properties: {
-      entityNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn entiteitnummer. Obtain this from a municipality stop result.'
-      },
-      stopNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn haltenummer. Keep any leading zeroes.'
+      stopIds: {
+        type: 'array', minItems: 1, maxItems: 50,
+        description: 'De Lijn stop identifiers. Obtain these from municipality stop results.',
+        items: {
+          type: 'object',
+          properties: {
+            entityNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn entiteitnummer.'
+            },
+            stopNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn haltenummer. Keep any leading zeroes.'
+            }
+          },
+          required: ['entityNumber', 'stopNumber'], additionalProperties: false
+        }
       }
     },
-    required: ['entityNumber', 'stopNumber'], additionalProperties: false
+    required: ['stopIds'], additionalProperties: false
   },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
 };
 
 export const getStopRealtimeTool = {
   name: 'get_stop_realtime',
-  description: 'Get the current realtime window for a stop. De Lijn does not accept a date on this endpoint; results may include the next day.',
+  description: 'Get the current realtime window for one or more stops. De Lijn does not accept a date on this endpoint; results may include the next day.',
   inputSchema: {
     type: 'object',
     properties: {
-      entityNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn entiteitnummer. Obtain this from a municipality stop result.'
-      },
-      stopNumber: {
-        type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
-        description: 'De Lijn haltenummer. Keep any leading zeroes.'
+      stopIds: {
+        type: 'array', minItems: 1, maxItems: 50,
+        description: 'De Lijn stop identifiers. Obtain these from municipality stop results.',
+        items: {
+          type: 'object',
+          properties: {
+            entityNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn entiteitnummer.'
+            },
+            stopNumber: {
+              type: 'string', pattern: '^\\d+$', minLength: 1, maxLength: 12,
+              description: 'De Lijn haltenummer. Keep any leading zeroes.'
+            }
+          },
+          required: ['entityNumber', 'stopNumber'], additionalProperties: false
+        }
       }
     },
-    required: ['entityNumber', 'stopNumber'], additionalProperties: false
+    required: ['stopIds'], additionalProperties: false
   },
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
 };
@@ -164,19 +204,31 @@ export function getStopLines(args) {
 }
 
 export function getStopNextPassages(args) {
-  return deLijnService.getStopNextPassages(args.entityNumber, args.stopNumber);
+  return Promise.all(args.stopIds.map(async stopId => ({
+    stopId,
+    nextPassages: await deLijnService.getStopNextPassages(stopId.entityNumber, stopId.stopNumber)
+  })));
 }
 
 export function getStopAlerts(args) {
-  return deLijnService.getStopAlerts(args.entityNumber, args.stopNumber);
+  return Promise.all(args.stopIds.map(async stopId => ({
+    stopId,
+    alerts: await deLijnService.getStopAlerts(stopId.entityNumber, stopId.stopNumber)
+  })));
 }
 
 export function getStopPassages(args) {
-  return deLijnService.getStopPassages(args.entityNumber, args.stopNumber);
+  return Promise.all(args.stopIds.map(async stopId => ({
+    stopId,
+    passages: await deLijnService.getStopPassages(stopId.entityNumber, stopId.stopNumber)
+  })));
 }
 
 export function getStopRealtime(args) {
-  return deLijnService.getStopRealtime(args.entityNumber, args.stopNumber);
+  return Promise.all(args.stopIds.map(async stopId => ({
+    stopId,
+    realtime: await deLijnService.getStopRealtime(stopId.entityNumber, stopId.stopNumber)
+  })));
 }
 
 export async function callTool(name, args = {}) {
