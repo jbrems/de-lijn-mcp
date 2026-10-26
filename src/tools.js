@@ -1,5 +1,30 @@
 import * as deLijnService from './de-lijn.js';
 
+function stopOutputSchema(payloadName) {
+  return {
+    type: 'object',
+    properties: {
+      stops: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            stopId: {
+              type: 'object',
+              properties: { entityNumber: { type: 'string' }, stopNumber: { type: 'string' } },
+              required: ['entityNumber', 'stopNumber'], additionalProperties: false
+            },
+            // Keep upstream JSON intact, including arrays and fields added by De Lijn.
+            [payloadName]: {}
+          },
+          required: ['stopId', payloadName], additionalProperties: false
+        }
+      }
+    },
+    required: ['stops'], additionalProperties: false
+  };
+}
+
 export const listMunicipalitiesTool = {
   name: 'list_municipalities',
   description: 'List De Lijn municipalities and their identifiers.',
@@ -25,6 +50,7 @@ export const getMunicipalityStopsTool = {
 
 export const getStopLinesTool = {
   name: 'get_stop_lines',
+  outputSchema: stopOutputSchema('lines'),
   description: 'Get all lines and directions serving one or more stops today.',
   inputSchema: {
     type: 'object',
@@ -55,6 +81,7 @@ export const getStopLinesTool = {
 
 export const getStopNextPassagesTool = {
   name: 'get_stop_next_passages',
+  outputSchema: stopOutputSchema('nextPassages'),
   description: 'Get the next non-cancelled passage today for every served line and direction at one or more stops. Combine the full timetable with up to 100 realtime passages per stop; timetable fallback is labelled. A null passage means no remaining passage today.',
   inputSchema: {
     type: 'object',
@@ -85,6 +112,7 @@ export const getStopNextPassagesTool = {
 
 export const getStopAlertsTool = {
   name: 'get_stop_alerts',
+  outputSchema: stopOutputSchema('alerts'),
   description: 'Get detours, disruptions and other messages for one or more stops today.',
   inputSchema: {
     type: 'object',
@@ -115,6 +143,7 @@ export const getStopAlertsTool = {
 
 export const getStopPassagesTool = {
   name: 'get_stop_passages',
+  outputSchema: stopOutputSchema('passages'),
   description: 'Get the full timetable of passages at one or more stops today, including past and cancelled passages and all notes. This is the daily timetable, not just the limited realtime window.',
   inputSchema: {
     type: 'object',
@@ -145,6 +174,7 @@ export const getStopPassagesTool = {
 
 export const getStopRealtimeTool = {
   name: 'get_stop_realtime',
+  outputSchema: stopOutputSchema('realtime'),
   description: 'Get the current realtime window for one or more stops. De Lijn does not accept a date on this endpoint; results may include the next day.',
   inputSchema: {
     type: 'object',
@@ -196,39 +226,39 @@ export async function getMunicipalityStops(args) {
   };
 }
 
-export function getStopLines(args) {
-  return Promise.all(args.stopIds.map(async stopId => ({
+export async function getStopLines(args) {
+  return { stops: await Promise.all(args.stopIds.map(async stopId => ({
     stopId,
     lines: await deLijnService.getStopLines(stopId.entityNumber, stopId.stopNumber)
-  })));
+  }))) };
 }
 
-export function getStopNextPassages(args) {
-  return Promise.all(args.stopIds.map(async stopId => ({
+export async function getStopNextPassages(args) {
+  return { stops: await Promise.all(args.stopIds.map(async stopId => ({
     stopId,
     nextPassages: await deLijnService.getStopNextPassages(stopId.entityNumber, stopId.stopNumber)
-  })));
+  }))) };
 }
 
-export function getStopAlerts(args) {
-  return Promise.all(args.stopIds.map(async stopId => ({
+export async function getStopAlerts(args) {
+  return { stops: await Promise.all(args.stopIds.map(async stopId => ({
     stopId,
     alerts: await deLijnService.getStopAlerts(stopId.entityNumber, stopId.stopNumber)
-  })));
+  }))) };
 }
 
-export function getStopPassages(args) {
-  return Promise.all(args.stopIds.map(async stopId => ({
+export async function getStopPassages(args) {
+  return { stops: await Promise.all(args.stopIds.map(async stopId => ({
     stopId,
     passages: await deLijnService.getStopPassages(stopId.entityNumber, stopId.stopNumber)
-  })));
+  }))) };
 }
 
-export function getStopRealtime(args) {
-  return Promise.all(args.stopIds.map(async stopId => ({
+export async function getStopRealtime(args) {
+  return { stops: await Promise.all(args.stopIds.map(async stopId => ({
     stopId,
     realtime: await deLijnService.getStopRealtime(stopId.entityNumber, stopId.stopNumber)
-  })));
+  }))) };
 }
 
 export async function callTool(name, args = {}) {

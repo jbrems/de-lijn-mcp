@@ -46,11 +46,13 @@ Every stop tool accepts up to 50 stops in one call, for example:
 {"stopIds":[{"entityNumber":"3","stopNumber":"306938"},{"entityNumber":"3","stopNumber":"306939"}]}
 ```
 
-Each response is an array that pairs the requested `stopId` with its tool-specific result (`lines`, `nextPassages`, `alerts`, `passages` or `realtime`).
+Each stop-tool response is an object with a `stops` array that pairs each requested `stopId` with its tool-specific result (`lines`, `nextPassages`, `alerts`, `passages` or `realtime`).
+For example: `{"stops":[{"stopId":{"entityNumber":"3","stopNumber":"306938"},"lines":{"lijnrichtingen":[],"links":[]}}]}`.
+The declared output schemas describe this envelope. Both MCP `structuredContent` and the JSON text content contain the same object; nested De Lijn payloads retain all fields and arrays.
 
 All applicable requests explicitly use the current Belgian date/time (`Europe/Brussels`), including daylight saving time.
 No tool accepts a historical or future date. `geldigOp` is sent as a local date/time; `datum` as a local calendar date.
-Responses return the useful De Lijn payload directly without a metadata envelope.
+Municipality responses return the De Lijn payload directly; stop-tool responses use the `stops` envelope above.
 If only some alert endpoints fail, successful alerts are returned and failed categories are `null` with explicit warnings.
 OpenData responses are cached in server memory and simultaneous identical requests share the same upstream request.
 Municipalities, stops and line directions are cached for 24 hours; timetables, alerts and realtime passages for 1 minute.
